@@ -158,6 +158,8 @@ services:
         condition: service_healthy
       mqtt:
         condition: service_healthy
+      fleet:
+        condition: service_healthy
     environment:
       - APP.NAME=be_fleet
       - APP.ENV=development
