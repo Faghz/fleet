@@ -19,8 +19,6 @@ func createVehicleHandler(h *MQTTHandler) error {
 		return err
 	}
 
-	h.logger.Info("MQTT handlers initialized successfully")
-
 	return nil
 }
 

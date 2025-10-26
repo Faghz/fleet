@@ -2,20 +2,13 @@ package configs
 
 import "time"
 
-// Configuration models for the accounting application
-//
-// Note: For API responses requiring pagination, use the standardized Metadata struct
-// from pkg/api/http/response package. All paginated endpoints should return data
-// in the format: { "items": [...], "metadata": {...} }
-//
-// See METADATA_IMPLEMENTATION.md for detailed usage guidelines.
-
 type Config struct {
 	App      AppConfig      `mapstructure:"APP"`
 	Function FunctionConfig `mapstructure:"FUNCTION"`
 	Http     HttpConfig     `mapstructure:"HTTP"`
 	Database Database       `mapstructure:"DATABASE"`
 	MQTT     MQTTConfig     `mapstructure:"MQTT"`
+	RabbitMQ RabbitMQConfig `mapstructure:"RABBIT_MQ"`
 }
 
 type Database struct {
@@ -100,4 +93,12 @@ type MQTTConfig struct {
 	Password string `mapstructure:"PASSWORD"`
 	QoS      byte   `mapstructure:"QOS"`
 	APIKey   string `mapstructure:"API_KEY" validate:"required"`
+}
+
+type RabbitMQConfig struct {
+	Host     string `mapstructure:"HOST" validate:"required"`
+	Port     string `mapstructure:"PORT" validate:"required"`
+	User     string `mapstructure:"USER"`
+	Password string `mapstructure:"PASSWORD"`
+	Vhost    string `mapstructure:"VHOST"`
 }
