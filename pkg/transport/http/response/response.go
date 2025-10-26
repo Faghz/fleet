@@ -251,6 +251,16 @@ func GenerateBadRequest(title, description string, errors ...FailureError) error
 	}
 }
 
+// FailureResponse sends a Failure struct as a JSON response with the appropriate HTTP status code
+func FailureResponse(c *fiber.Ctx, failure error) error {
+	failureDetail, ok := failure.(*Failure)
+	if !ok {
+		failureDetail = GenerateFailure(http.StatusInternalServerError, "Internal Server Error", failure.Error()).(*Failure)
+	}
+
+	return c.Status(failureDetail.Code).JSON(failureDetail)
+}
+
 func ErrorBadRequest(message string) error {
 	return &Failure{
 		Code:        http.StatusBadRequest,

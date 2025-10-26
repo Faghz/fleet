@@ -15,6 +15,7 @@ type VehicleRepository interface {
 	GetVehicleByVehicleID(ctx context.Context, vehicleID string) (models.Vehicle, error)
 	InsertVehicleLocation(ctx context.Context, arg models.InsertVehicleLocationParams) (models.VehicleLocation, error)
 	GetVehicleLatestLocationByVehicleID(ctx context.Context, vehicleID string) (models.GetVehicleLatestLocationByVehicleIDRow, error)
+	GetVehicleLocationHistoryByVehicleIDAndTimeRange(ctx context.Context, arg models.GetVehicleLocationHistoryByVehicleIDParams) ([]models.GetVehicleLocationHistoryByVehicleIDRow, error)
 
 	BeginTx(ctx context.Context) (pgx.Tx, error)
 	WithTx(tx pgx.Tx) repository.Querier

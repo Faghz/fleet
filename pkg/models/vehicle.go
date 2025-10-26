@@ -79,3 +79,18 @@ type GetVehicleLatestLocationByVehicleIDRow struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
+
+type GetVehicleLocationHistoryByVehicleIDParams struct {
+	VehicleID pgtype.UUID `json:"vehicle_id"`
+	Start     int64       `json:"start"`
+	End       int64       `json:"end"`
+}
+
+type GetVehicleLocationHistoryByVehicleIDRow struct {
+	EntityID  pgtype.UUID        `json:"entity_id"`
+	Latitude  pgtype.Numeric     `json:"latitude"`
+	Longitude pgtype.Numeric     `json:"longitude"`
+	Timestamp int64              `json:"timestamp"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}

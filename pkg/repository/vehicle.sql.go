@@ -149,3 +149,45 @@ func (q *Queries) GetVehicleLatestLocationByVehicleID(ctx context.Context, vehic
 	)
 	return i, err
 }
+
+const getVehicleLocationHistoryByVehicleID = `-- name: GetVehicleLocationHistoryByVehicleID :many
+SELECT 
+	vlh.entity_id,
+	vlh.latitude,
+	vlh.longitude,
+	vlh.timestamp,
+	vlh.created_at,
+	vlh.updated_at
+FROM vehicle_location_history vlh
+WHERE vlh.vehicle_entity_id = $1 AND vlh.timestamp BETWEEN $2 AND $3
+ORDER BY vlh.timestamp DESC
+`
+
+func (q *Queries) GetVehicleLocationHistoryByVehicleIDAndTimeRange(ctx context.Context, arg models.GetVehicleLocationHistoryByVehicleIDParams) ([]models.GetVehicleLocationHistoryByVehicleIDRow, error) {
+	rows, err := q.db.Query(ctx, getVehicleLocationHistoryByVehicleID, arg.VehicleID, arg.Start, arg.End)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var items []models.GetVehicleLocationHistoryByVehicleIDRow
+	for rows.Next() {
+		var i models.GetVehicleLocationHistoryByVehicleIDRow
+		if err := rows.Scan(
+			&i.EntityID,
+			&i.Latitude,
+			&i.Longitude,
+			&i.Timestamp,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
