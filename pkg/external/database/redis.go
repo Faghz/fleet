@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
+	goredislib "github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -17,21 +19,34 @@ type RedisConnectionOptions struct {
 	DB       int
 }
 
-func CreateRedisConnection(opt RedisConnectionOptions, logger *zap.Logger) (client *redis.Client) {
-	client = redis.NewClient(&redis.Options{
+type RedisClient struct {
+	Client *goredislib.Client
+	Mutex  *redsync.Redsync
+	Prefix string
+}
+
+func CreateRedisConnection(opt RedisConnectionOptions, logger *zap.Logger) (client *RedisClient) {
+	redisClient := goredislib.NewClient(&goredislib.Options{
 		Addr:     fmt.Sprintf("%s:%s", opt.Host, opt.Port),
 		Username: opt.User,
 		Password: opt.Password,
 		DB:       opt.DB,
 	})
 
-	_, err := client.Ping(context.Background()).Result()
+	// Test connection
+	_, err := redisClient.Ping(context.Background()).Result()
 	if err != nil {
-		logger.Fatal("Redis connection failed", zap.Error(err))
-		return
+		logger.Fatal("failed to connect to Redis", zap.Error(err))
 	}
 
-	logger.Info("Redis Connected successfully")
+	pool := goredis.NewPool(redisClient)
+	rs := redsync.New(pool)
+
+	client = &RedisClient{
+		Client: redisClient,
+		Mutex:  rs,
+		Prefix: opt.Prefix,
+	}
 
 	return
 }

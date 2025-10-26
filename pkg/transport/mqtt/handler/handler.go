@@ -23,9 +23,9 @@ func CreateMqttConsumer(config *configs.Config, logger *zap.Logger, mqttClient *
 		vehicleService: vehicleService,
 	}
 
-	// Initialize fleet-related MQTT handlers
-	if err := createFleetHandler(mqttHandler); err != nil {
-		logger.Fatal("[CreateMqttConsumer] Failed to create fleet MQTT handler", zap.Error(err))
+	// Initialize vehicle-related MQTT handlers
+	if err := createVehicleHandler(mqttHandler); err != nil {
+		logger.Fatal("[CreateMqttConsumer] Failed to create vehicle MQTT handler", zap.Error(err))
 	}
 
 	logger.Info("MQTT handlers initialized successfully")

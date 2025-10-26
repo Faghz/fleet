@@ -17,15 +17,15 @@ type Services struct {
 }
 
 func CreateServices(cfg *configs.Config, logger *zap.Logger, externalDependencies *external.ExternalDependencies) *Services {
-	healthzService := healthz.CreateHalthzService(externalDependencies.PostgreSQLPool, externalDependencies.RedisClient)
-	repo, err := repository.CreateRepository(externalDependencies.PostgreSQLPool, externalDependencies.RedisClient, logger)
+	healthzService := healthz.CreateHalthzService(externalDependencies.PostgreSQLPool, externalDependencies.RedisClient.Client)
+	repo, err := repository.CreateRepository(externalDependencies.PostgreSQLPool, externalDependencies.RedisClient.Client, logger)
 	if err != nil {
 		logger.Fatal("failed to create repository", zap.Error(err))
 	}
 
 	return &Services{
 		HealthzService: healthzService,
-		UserService:    user.CreateService(cfg, logger, repo, externalDependencies.RedisClient),
-		VehicleService: vehicle.CreateVehicleService(cfg, logger),
+		UserService:    user.CreateService(cfg, logger, repo, externalDependencies.RedisClient.Client),
+		VehicleService: vehicle.CreateVehicleService(cfg, logger, repo, externalDependencies.RedisClient),
 	}
 }
