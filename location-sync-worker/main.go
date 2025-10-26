@@ -117,6 +117,6 @@ func main() {
 		}
 
 		// Wait 5 seconds before next update
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(2 * time.Second)
 	}
 }
