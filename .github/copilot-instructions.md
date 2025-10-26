@@ -1,15 +1,16 @@
-# Copilot Instructions for Backend Boilerplate
+# Copilot Instructions for Fleet Management API
 
 ## Architecture Overview
 
-This is a **Go HTTP API service** using clean architecture with clear layer separation:
+This is a **Go HTTP API service with MQTT integration** using clean architecture with clear layer separation:
 
-- **Handlers** (`pkg/api/http/handler/`) - Fiber HTTP handlers, validation, middleware
-- **Services** (`service/`) - Business logic layer (user, auth, discord, healthz)
+- **HTTP Transport** (`pkg/transport/http/`) - Fiber HTTP handlers, validation, middleware
+- **MQTT Transport** (`pkg/transport/mqtt/`) - Real-time vehicle data handlers using Eclipse Paho MQTT client
+- **Services** (`service/`) - Business logic layer (user, auth, vehicle)
 - **Repository** (`pkg/repository/`) - Data access via SQLC-generated code + manual cache layer
-- **External** (`pkg/external/`) - Infrastructure connections (PostgreSQL, Redis)
+- **External** (`pkg/external/`) - Infrastructure connections (PostgreSQL, Redis, MQTT broker)
 
-**Key Pattern**: Each service defines its own interface (`UserRepository` in `service/user/service.go`) to decouple from the concrete repository implementation, enabling easy mocking.
+**Key Pattern**: Each service defines its own interface to decouple from concrete repository implementations, enabling easy mocking.
 
 ## Code Generation Workflow
 
@@ -29,13 +30,15 @@ This project heavily relies on code generation. **Always regenerate after modify
 - **Config**: `configs/sqlc.yaml` targets PostgreSQL with pgx/v5, outputs to `../generated`
 
 ### API Documentation (Swagger)
-- **Source**: Annotations in handler files (`@Summary`, `@Router`, etc.)
+- **Source**: Annotations in HTTP handler files (`@Summary`, `@Router`, etc.)
 - **Generate**: `make docs`
 - **Output**: `cmd/server/docs/` (swagger.json, swagger.yaml, docs.go)
 
 ### Mocks (gomock)
-- **Generate**: `make gen-mocks` 
-- **Output**: `pkg/mocks/*-mock.go` (querier-mock, user-repository-mock, repo-impl-mock)
+- **Source**: `//go:generate` directives on service interfaces
+- **Generate**: `go generate ./service/...` or `go generate ./...`
+- **Example**: `//go:generate mockgen -destination=../../pkg/mocks/user_repository_mock.go -package=mocks github.com/elzestia/fleet/service/user UserRepository`
+- **Output**: `pkg/mocks/*_mock.go` files for each service interface
 - **Usage**: Service tests import from `pkg/mocks`, see `service/user/user_test.go` for patterns
 
 ## Database Management (dbmate + Docker)
@@ -60,17 +63,35 @@ DROP TABLE IF EXISTS example;
 
 **Schema Dump**: `db/schema.sql` is auto-generated after each migration (version controlled).
 
+**Vehicle Tables**: Core entities include `vehicle` (vehicle metadata) and `vehicle_location` (GPS tracking with timestamps).
+
+## MQTT Integration
+
+**Real-time vehicle tracking** using Eclipse Mosquitto broker:
+
+- **MQTT Transport**: `pkg/transport/mqtt/` handles real-time vehicle location updates
+- **Broker**: Mosquitto configured in `docker-compose.yml` (ports 1883 MQTT, 9001 WebSocket)
+- **Client**: Paho MQTT client with auto-reconnect and connection handlers
+- **Topics**: Fleet-related topics handled in `pkg/transport/mqtt/handler/fleet.go`
+- **Configuration**: `MQTTConfig` in `configs/models.go` with broker, credentials, QoS settings
+
+**MQTT Handler Pattern**:
+```go
+mqttHandler := CreateMqttConsumer(cfg, logger, mqttClient, vehicleService)
+// Initializes fleet handlers automatically
+```
+
 ## Authentication & Session Management
 
 **Token System**: PASETO tokens (v4.public) with session validation
 - **Generate keys**: `make generate-auth-key-save` → stores in `.auth-key`
-- **Auth flow**: 
+- **Auth flow**:
   1. Login → `service/user/auth.go` validates password (bcrypt)
   2. Generate PASETO token with claims (subject=userID, jti=sessionID, orgID)
   3. Store session in PostgreSQL + Redis cache (`pkg/repository/sesion.cache.go`)
   4. Middleware (`pkg/api/http/handler/midlleware.go`) verifies token + checks session cache/DB
 
-**Session Cache Pattern**: 
+**Session Cache Pattern**:
 - Key format: `session:{userID}:{sessionID}`
 - Check cache first (`GetSessionCache`), fallback to DB, then populate cache
 - See `pkg/repository/sesion.cache.go` for implementation
@@ -82,7 +103,7 @@ DROP TABLE IF EXISTS example;
 2. Environment variables override `.env` values
 3. Supports both formats: `APP.ENV` or `APP_ENV`
 
-**Nested struct** (`configs/models.go`): `Config` → `AppConfig`, `HttpConfig`, `Database`, `FunctionConfig` (auth settings)
+**Nested struct** (`configs/models.go`): `Config` → `AppConfig`, `HttpConfig`, `Database`, `MQTTConfig`, `FunctionConfig` (auth settings)
 
 ## Request/Response Patterns
 
@@ -93,7 +114,7 @@ DROP TABLE IF EXISTS example;
 - **Error formatting**: Auto-translates to `response.FailureError` with pointer paths
 
 ### Request Parsing
-- **Fiber**: Use `c.BodyParser(&req)` to parse JSON request body
+- **HTTP**: Use `c.BodyParser(&req)` to parse JSON request body
 - **Context**: Use `c.UserContext()` to get request context for service calls
 
 ### Response Structure
@@ -102,7 +123,7 @@ response.BaseResponse{Status, Message, Data}
 response.PaginatedResponse{Items, Metadata{Page, Limit, TotalPages}}
 ```
 
-**Helpers**: 
+**Helpers**:
 - `response.ResponseJson(c, status, message, data)` - Success (Fiber context)
 - `response.GenerateFailure(status, message, details)` - Error
 - `response.GenerateBadRequest(...)` - Validation errors
@@ -129,11 +150,32 @@ mockRepo.EXPECT().GetUserByEmail(ctx, gomock.Any()).Return(user, nil)
 ```bash
 make dev                   # Hot reload via Air (requires .air.toml config)
 make build                 # Build to bin/server
+make test                  # Run tests
 make lint                  # golangci-lint
-make install-tools         # Install swag, mockgen, golangci-lint
+make docs                  # Generate swagger docs
+make gen-db                # Generate database code with sqlc
+generate                  # Run go generate on all packages (includes mocks)
+make migrate-up            # Apply DB migrations
+make generate-auth-key-save # Generate and save auth keys
+```
+
+**Docker Services**:
+```bash
+docker-compose up mosquitto  # Start MQTT broker
+docker-compose up rabbitmq   # Start RabbitMQ (if used)
 ```
 
 ## Unique Patterns & Gotchas
+
+### MQTT Message Handling
+- **Fleet Handler**: `createFleetHandler()` initializes MQTT topic subscriptions
+- **Connection Management**: Auto-reconnect with 10s retry interval, 1min max interval
+- **QoS Settings**: Configurable per-message delivery guarantees
+
+### Vehicle Location Tracking
+- **Dual Storage**: Vehicle metadata in `vehicle` table, locations in `vehicle_location` with timestamps
+- **Latest Location Query**: Complex SQL joining vehicle + latest location by timestamp
+- **Location History**: Count locations with `CountVehicleLocationsHistory()`
 
 ### Snowflake IDs
 - Repository embeds `snowflake.Node` (initialized in `repository.CreateRepository`)
@@ -158,8 +200,9 @@ repo.CommitTx(tx)
 
 ## File Organization Rules
 
-- **No mixing layers**: Handlers call services (not repos), services call repos
-- **Request/Response DTOs**: Always in `pkg/api/http/request|response/`
+- **No mixing layers**: HTTP handlers call services (not repos), services call repos
+- **MQTT handlers**: Real-time message processing in `pkg/transport/mqtt/handler/`
+- **Request/Response DTOs**: Always in `pkg/api/http/request|response/` (HTTP only)
 - **Domain models**: `pkg/models/` (separate from DB models in `pkg/repository/`)
 - **Generated code workflow**:
   - SQLC generates to `./generated/` first

@@ -3,6 +3,7 @@ package external
 import (
 	"github.com/elzestia/fleet/configs"
 	"github.com/elzestia/fleet/pkg/external/database"
+	"github.com/elzestia/fleet/pkg/external/mqtt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -11,6 +12,7 @@ import (
 type ExternalDependencies struct {
 	PostgreSQLPool *pgxpool.Pool
 	RedisClient    *redis.Client
+	MQTTClient     *mqtt.MQTTClient
 }
 
 func CreateExternalDependencies(config *configs.Config, logger *zap.Logger) *ExternalDependencies {
@@ -35,8 +37,11 @@ func CreateExternalDependencies(config *configs.Config, logger *zap.Logger) *Ext
 		Prefix:   config.App.Name,
 	}, logger)
 
+	mqttClient := mqtt.CreateMQTTConnection(&config.MQTT, logger)
+
 	return &ExternalDependencies{
 		PostgreSQLPool: postgresPool,
 		RedisClient:    redisClient,
+		MQTTClient:     mqttClient,
 	}
 }

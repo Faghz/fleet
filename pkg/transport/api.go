@@ -13,7 +13,6 @@ import (
 func CreateApiServer(cfg *configs.Config, logger *zap.Logger, services *service.Services) (httpServer *fiber.App) {
 	httpServer = inthttp.CreateHttpServer(cfg.Http.Port, cfg.App.ContextTimeout, logger, cfg)
 	httphndl.CreateHandler(httpServer, services, logger)
-	inthttp.SetupAndServe(httpServer, services, cfg.Http.Port, cfg.App.ContextTimeout, logger)
 
 	return
 }
