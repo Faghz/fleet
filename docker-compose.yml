@@ -61,7 +61,7 @@ services:
     image: eclipse-mosquitto:latest
     container_name: fleet-mqtt
     healthcheck:
-      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t test -m 'test' && mosquitto_sub -h localhost -t test -C 1"]
+      test: ["CMD", "nc", "-z", "localhost", "1883"]
       interval: 1m30s
       timeout: 30s
       retries: 5
@@ -81,10 +81,14 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
-      - redis
-      - rabbitmq
-      - mqtt
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mqtt:
+        condition: service_healthy
     environment:
       - APP.NAME=be_fleet
       - APP.ENV=development
@@ -140,10 +144,14 @@ services:
     build: ./geofence-consumer
     container_name: geofence-consumer-service
     depends_on:
-      - postgres
-      - redis
-      - rabbitmq
-      - mqtt
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mqtt:
+        condition: service_healthy
     environment:
       - APP.NAME=be_fleet
       - APP.ENV=development
@@ -184,7 +192,8 @@ services:
     build: ./location-sync-worker
     container_name: location-sync-worker-service
     depends_on:
-      - mqtt
+      mqtt:
+        condition: service_healthy
     environment:
       - MQTT_BROKER=tcp://mqtt:1883
       - API_KEY=sk_dev_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
