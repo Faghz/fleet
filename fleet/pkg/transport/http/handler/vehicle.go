@@ -19,6 +19,7 @@ func createVehicleHandler(app *fiber.App, handler *HttpHandler) {
 // @Tags vehicles
 // @Produce json
 // @Param vehicle_id path string true "Vehicle Entity ID"
+// @Security BearerToken
 // @Success 200 {object} response.BaseResponse{data=response.VehicleLocation} "Vehicle location retrieved successfully"
 // @Failure 400 {object} response.Failure "Invalid Request data"
 // @Failure 404 {object} response.Failure "Vehicle not found"
@@ -41,13 +42,14 @@ func (h *HttpHandler) getVehicleLocation(c *fiber.Ctx) error {
 // @Tags vehicles
 // @Produce json
 // @Param vehicle_id path string true "Vehicle Entity ID"
-// @Param start_time query int64 false "Start time for location history filter (Unix timestamp)"
-// @Param end_time query int64 false "End time for location history filter (Unix timestamp)"
+// @Param start query int64 true "Start time for location history filter (Unix timestamp)"
+// @Param end query int64 true "End time for location history filter (Unix timestamp)"
+// @Security BearerToken
 // @Success 200 {array} response.BaseResponse{data=response.VehicleLocation} "Vehicle location history retrieved successfully"
 // @Failure 400 {object} response.Failure "Invalid Request data"
 // @Failure 404 {object} response.Failure "Vehicle not found"
 // @Failure 500 {object} response.Failure "Internal Server Error"
-// @Router /v1/vehicles/{vehicle_id}/locations/history [get]
+// @Router /v1/vehicles/{vehicle_id}/history [get]
 func (h *HttpHandler) getVehicleLocationHistory(c *fiber.Ctx) error {
 	req := request.GetVehicleLocationHistoryRequest{}
 	req.ParseFromContext(c)

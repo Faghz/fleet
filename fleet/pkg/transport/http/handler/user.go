@@ -18,7 +18,7 @@ func createUserHandler(app *fiber.App, handler *HttpHandler) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Security Bearer
+// @Security BearerToken
 // @Success 200 {object} response.UserDetail "User details retrieved successfully"
 // @Failure 401 {object} response.Failure "Unauthorized"
 // @Failure 404 {object} response.Failure "User not found"
