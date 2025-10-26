@@ -12,6 +12,7 @@ import (
 	api "github.com/elzestia/fleet/pkg/transport"
 	inthttp "github.com/elzestia/fleet/pkg/transport/http"
 	mqtthandler "github.com/elzestia/fleet/pkg/transport/mqtt/handler"
+	rabbitmqhndl "github.com/elzestia/fleet/pkg/transport/rabbitmq"
 	"github.com/elzestia/fleet/service"
 )
 
@@ -46,7 +47,8 @@ func main() {
 	// Create API servers.
 	httpServer := api.CreateApiServer(cfg, zapLogger, services)
 	// Initialize MQTT handler
-	mqttHandler := mqtthandler.CreateMqttConsumer(cfg, zapLogger, externalDependencies.MQTTClient, services.VehicleService)
+	mqttConsumer := mqtthandler.CreateMqttConsumer(cfg, zapLogger, externalDependencies.MQTTClient, services.VehicleService)
+	rabbitMqHandler := rabbitmqhndl.CreateRabbitMQHandler(externalDependencies.RabbitMQClient, cfg)
 
 	inthttp.SetupAndServe(httpServer, services, cfg.Http.Port, cfg.App.ContextTimeout, zapLogger)
 
@@ -58,7 +60,9 @@ func main() {
 
 	zapLogger.Info("Shutting down server...")
 	// Shutdown MQTT handler
-	mqttHandler.Shutdown()
+	mqttConsumer.Shutdown()
+	// Shutdown RabbitMQ handler
+	rabbitMqHandler.Shutdown()
 
 	// Shutdown server.
 	err = api.ShutdownServer(httpServer, zapLogger)

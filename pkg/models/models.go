@@ -16,6 +16,20 @@ type Auth struct {
 	DeletedBy pgtype.Text        `json:"deleted_by"`
 }
 
+type PointOfInterest struct {
+	ID          int64              `json:"id"`
+	Name        string             `json:"name"`
+	Latitude    pgtype.Numeric     `json:"latitude"`
+	Longitude   pgtype.Numeric     `json:"longitude"`
+	Description pgtype.Text        `json:"description"`
+	CreatedBy   pgtype.Text        `json:"created_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy   pgtype.Text        `json:"updated_by"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedBy   pgtype.Text        `json:"deleted_by"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type SchemaMigration struct {
 	Version string `json:"version"`
 }
