@@ -13,7 +13,12 @@ func buildSessionCacheKey(userId, sessionId string) string {
 
 func (r *Repository) SetSessionCache(ctx context.Context, session models.Session) (err error) {
 	key := buildSessionCacheKey(session.UserID, session.ID)
-	err = r.redisConn.Set(ctx, key, session, 0).Err()
+	jsonData, err := json.Marshal(session)
+	if err != nil {
+		return err
+	}
+
+	err = r.redisConn.Set(ctx, key, jsonData, 0).Err()
 	if err != nil {
 		return err
 	}

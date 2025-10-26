@@ -76,7 +76,7 @@ func (s *UserService) RegisterUser(ctx context.Context, req *request.RegisterUse
 	}
 
 	user, err := s.GetUserByEmail(ctx, req.Email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !errors.Is(err, response.ErrorUserDatabaseUserNotFound) {
 		s.logger.Error("[RegisterUser] Failed to get user by params", zap.Error(err))
 		return response.ErrorInternalServerError
 	}
