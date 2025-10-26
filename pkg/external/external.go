@@ -5,13 +5,12 @@ import (
 	"github.com/elzestia/fleet/pkg/external/database"
 	"github.com/elzestia/fleet/pkg/external/mqtt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 type ExternalDependencies struct {
 	PostgreSQLPool *pgxpool.Pool
-	RedisClient    *redis.Client
+	RedisClient    *database.RedisClient
 	MQTTClient     *mqtt.MQTTClient
 }
 

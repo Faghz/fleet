@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
@@ -9,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func createFleetHandler(h *MQTTHandler) error {
+func createVehicleHandler(h *MQTTHandler) error {
 	// Subscribe to vehicle location topic with wildcard for vehicle_id
 	if err := h.mqttClient.Subscribe("fleet/vehicle/+/location", h.syncVehicleLocation); err != nil {
 		h.logger.Error("Failed to subscribe to vehicle location topic",
@@ -71,7 +72,8 @@ func (h *MQTTHandler) syncVehicleLocation(client pahomqtt.Client, msg pahomqtt.M
 		return
 	}
 
-	h.vehicleService.ProcessVehicleLocationSync(&locationReq)
+	// Process the location data (implement your business logic here)
+	h.vehicleService.ProcessVehicleLocationSync(context.Background(), &locationReq)
 
 	// Send success response
 	h.mqttClient.PublishResponse("success", topic, "Location updated successfully", map[string]interface{}{
