@@ -7,6 +7,7 @@ COPY . .
 
 RUN go env -w GO111MODULE=on
 RUN go mod download
+RUN go install github.com/golang/mock/mockgen@latest
 RUN go generate ./...
 
 RUN GOOS=linux go build -o main ./cmd/server

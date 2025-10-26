@@ -9,7 +9,7 @@ RUN go env -w GO111MODULE=on
 RUN go mod download
 RUN go generate ./...
 
-RUN GOOS=linux go build -o main ./cmd/server
+RUN GOOS=linux go build -o main ./
 
 ## Distribution Development
 FROM alpine AS final
