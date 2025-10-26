@@ -17,6 +17,8 @@ FROM alpine AS final
 
 WORKDIR /app
 
+RUN apk add --no-cache curl
+
 COPY --from=builder /app/main ./
 COPY --from=builder /app/.env.example ./
 
