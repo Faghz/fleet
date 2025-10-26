@@ -4,6 +4,7 @@ import (
 	"github.com/elzestia/fleet/configs"
 	"github.com/elzestia/fleet/pkg/external/database"
 	"github.com/elzestia/fleet/pkg/external/mqtt"
+	"github.com/elzestia/fleet/pkg/external/rabbitmq"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -12,6 +13,7 @@ type ExternalDependencies struct {
 	PostgreSQLPool *pgxpool.Pool
 	RedisClient    *database.RedisClient
 	MQTTClient     *mqtt.MQTTClient
+	RabbitMQClient *rabbitmq.RabbitMQClient
 }
 
 func CreateExternalDependencies(config *configs.Config, logger *zap.Logger) *ExternalDependencies {
@@ -37,10 +39,12 @@ func CreateExternalDependencies(config *configs.Config, logger *zap.Logger) *Ext
 	}, logger)
 
 	mqttClient := mqtt.CreateMQTTConnection(&config.MQTT, logger)
+	rabbitmqClient := rabbitmq.CreateRabbitMQConnection(&config.RabbitMQ, logger)
 
 	return &ExternalDependencies{
 		PostgreSQLPool: postgresPool,
 		RedisClient:    redisClient,
 		MQTTClient:     mqttClient,
+		RabbitMQClient: rabbitmqClient,
 	}
 }
