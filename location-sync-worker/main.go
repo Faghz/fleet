@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"time"
@@ -26,33 +27,16 @@ type LocationMessage struct {
 }
 
 var pois = []POI{
-	{"Jakarta1", -6.2087634, 106.845599},
-	{"Yogyakarta", -7.7956, 110.3695},
-	{"Bandung", -6.9175, 107.6191},
-	{"Jakarta2", -6.1751, 106.8227},
-}
-
-var nearPOIs = map[string][]POI{
-	"Jakarta1": {
-		{"", -6.209, 106.846},
-		{"", -6.208, 106.845},
-		{"", -6.207, 106.844},
-	},
-	"Yogyakarta": {
-		{"", -7.796, 110.370},
-		{"", -7.795, 110.369},
-		{"", -7.794, 110.368},
-	},
-	"Bandung": {
-		{"", -6.918, 107.620},
-		{"", -6.917, 107.619},
-		{"", -6.916, 107.618},
-	},
-	"Jakarta2": {
-		{"", -6.176, 106.823},
-		{"", -6.175, 106.822},
-		{"", -6.174, 106.821},
-	},
+	{"National Monument (Monas)", -6.1753924, 106.8271528},
+	{"Istiqlal Mosque", -6.169856, 106.830759},
+	{"Borobudur Temple", -7.6079, 110.2038},
+	{"Jakarta Cathedral", -6.1690, 106.8330},
+	{"Taman Mini Indonesia Indah", -6.3024, 106.8952},
+	{"Grand Indonesia Mall", -6.1951, 106.8227},
+	{"Ancol Dreamland", -6.1173, 106.8584},
+	{"Mount Bromo", -7.9425, 112.9533},
+	{"Kuta Beach", -8.7203, 115.1671},
+	{"Prambanan Temple", -7.7520, 110.4915},
 }
 
 var vehicleIDs = []string{"B1234ABC", "B5678DEF", "D9012GHI", "B3456JKL", "E7890MNO"}
@@ -91,15 +75,13 @@ func main() {
 
 		var latitude, longitude float64
 		if isNear {
-			nearPois := nearPOIs[poi.Name]
-			if len(nearPois) > 0 {
-				nearPoi := nearPois[random.Intn(len(nearPois))]
-				latitude = nearPoi.Latitude
-				longitude = nearPoi.Longitude
-			} else {
-				latitude = poi.Latitude
-				longitude = poi.Longitude
-			}
+			// Generate random point within 50 meters radius
+			distance := random.Float64() * 50
+			angle := random.Float64() * 2 * math.Pi
+			deltaLat := distance * math.Cos(angle) / 111320
+			deltaLon := distance * math.Sin(angle) / (111320 * math.Cos(poi.Latitude*math.Pi/180))
+			latitude = poi.Latitude + deltaLat
+			longitude = poi.Longitude + deltaLon
 		} else {
 			poi1 := pois[random.Intn(len(pois))]
 			poi2 := pois[random.Intn(len(pois))]
@@ -135,6 +117,6 @@ func main() {
 		}
 
 		// Wait 5 seconds before next update
-		time.Sleep(2 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
