@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: fleet-postgres
+    environment:
+      POSTGRES_DB: trans
+      POSTGRES_USER: fleet_user
+      POSTGRES_PASSWORD: fleet_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleet_user -d trans"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fleet-network
+
+  redis:
+    image: redis:latest
+    container_name: fleet-redis
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fleet-network
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: fleet-rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - fleet-network
+
+  mqtt:
+    image: eclipse-mosquitto:latest
+    container_name: fleet-mqtt
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t test -m 'test' && mosquitto_sub -h localhost -t test -C 1"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+    networks:
+      - fleet-network
+
+  fleet:
+    build: ./fleet
+    container_name: fleet-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+      - mqtt
+    environment:
+      - APP.NAME=be_fleet
+      - APP.ENV=development
+      - APP.LOG_LEVEL=debug
+      - APP.CONTEXT_TIMEOUT=10s
+      - HTTP.PORT=8080
+      - HTTP.ALLOWED_ORIGINS=http://localhost:3000
+      - HTTP.ALLOW_CREDENTIALS=true
+      - DATABASE.POSTGRESQL.HOST=postgres
+      - DATABASE.POSTGRESQL.PORT=5432
+      - DATABASE.POSTGRESQL.USER=fleet_user
+      - DATABASE.POSTGRESQL.PASSWORD=fleet_password
+      - DATABASE.POSTGRESQL.DB_NAME=trans
+      - DATABASE.POSTGRESQL.MAX_CONNS=25
+      - DATABASE.POSTGRESQL.MIN_CONNS=5
+      - DATABASE.POSTGRESQL.MAX_CONN_LIFETIME=15m
+      - DATABASE.POSTGRESQL.MAX_CONN_IDLE_TIME=5m
+      - DATABASE.POSTGRESQL.SSL_MODE=disable
+      - DATABASE.REDIS.HOST=redis
+      - DATABASE.REDIS.PORT=6379
+      - DATABASE.REDIS.USER=
+      - DATABASE.REDIS.PASSWORD=
+      - DATABASE.REDIS.DB=0
+      - FUNCTION.USER.SECRET_KEY.EMAIL="OASk2oStrShKwC3dcrhHD25nYwm0fQH1"
+      - FUNCTION.USER.SECRET_KEY.EMAIL_SALT="m0e9lf6ZNH5wtW4bARuAjCNQd3oh78qL"
+      - FUNCTION.USER.SECRET_KEY.EMAIL_SALT_LENGTH=60
+      - FUNCTION.AUTH.SECRET_KEY.PASSWORD_SALT="m0e9lf6ZNH5wtW4bARuAjCNQd3oh78qL"
+      - FUNCTION.AUTH.SECRET_KEY.SESSION_ID="OASk2oStrShKwC3dcrhHD25nYwm0fQH1"
+      - FUNCTION.AUTH.TOKEN.SECRET_KEY="09d861a55fa6fb1d60ccf00a8d6609f5de73f3d6397738446763982718fb10ea"
+      - FUNCTION.AUTH.TOKEN.EXPIRE=24h
+      - FUNCTION.AUTH.SESSION.CACHE_EXPIRE_TIME=24h
+      - MQTT.BROKER=mqtt
+      - MQTT.PORT=1883
+      - MQTT.CLIENT_ID=transportation-api-server
+      - MQTT.USERNAME=
+      - MQTT.PASSWORD=test123
+      - MQTT.QOS=1
+      - MQTT.API_KEY=sk_dev_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+      - RABBIT_MQ.HOST=rabbitmq
+      - RABBIT_MQ.PORT=5672
+      - RABBIT_MQ.USER=guest
+      - RABBIT_MQ.PASSWORD=guest
+      - RABBIT_MQ.VHOST=/
+      - RABBIT_MQ.EXCHANGE.FLEET.NAME=fleet.events
+      - RABBIT_MQ.EXCHANGE.FLEET.KIND=direct
+      - RABBIT_MQ.PUBLISHER.GEO_FENCE.EXCHANGE=fleet.events
+      - RABBIT_MQ.PUBLISHER.GEO_FENCE.QUEUE=geofence_alerts
+
+    networks:
+      - fleet-network
+
+  geofence-consumer:
+    build: ./geofence-consumer
+    container_name: geofence-consumer-service
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+      - mqtt
+    environment:
+      - APP.NAME=be_fleet
+      - APP.ENV=development
+      - APP.LOG_LEVEL=debug
+      - APP.CONTEXT_TIMEOUT=10s
+      - HTTP.PORT=8080
+      - HTTP.ALLOWED_ORIGINS=http://localhost:3000
+      - HTTP.ALLOW_CREDENTIALS=true
+      - DATABASE.POSTGRESQL.HOST=postgres
+      - DATABASE.POSTGRESQL.PORT=5432
+      - DATABASE.POSTGRESQL.USER=fleet_user
+      - DATABASE.POSTGRESQL.PASSWORD=fleet_password
+      - DATABASE.POSTGRESQL.DB_NAME=trans
+      - DATABASE.POSTGRESQL.MAX_CONNS=25
+      - DATABASE.POSTGRESQL.MIN_CONNS=5
+      - DATABASE.POSTGRESQL.MAX_CONN_LIFETIME=15m
+      - DATABASE.POSTGRESQL.MAX_CONN_IDLE_TIME=5m
+      - DATABASE.POSTGRESQL.SSL_MODE=disable
+      - DATABASE.REDIS.HOST=redis
+      - DATABASE.REDIS.PORT=6379
+      - DATABASE.REDIS.USER=
+      - DATABASE.REDIS.PASSWORD=
+      - DATABASE.REDIS.DB=0
+      - RABBIT_MQ.HOST=rabbitmq
+      - RABBIT_MQ.PORT=5672
+      - RABBIT_MQ.USER=guest
+      - RABBIT_MQ.PASSWORD=guest
+      - RABBIT_MQ.VHOST=/
+      - RABBIT_MQ.CONSUMER.GEO_FENCE.ENABLED=true
+      - RABBIT_MQ.CONSUMER.GEO_FENCE.EXCHANGE=fleet.events
+      - RABBIT_MQ.CONSUMER.GEO_FENCE.QUEUE=geofence_alerts
+      - RABBIT_MQ.CONSUMER.GEO_FENCE.CONSUMER_TAG=geofence_consumer
+      - RABBIT_MQ.CONSUMER.GEO_FENCE.ROUTING_KEY=geofence_alerts
+    networks:
+      - fleet-network
+
+  location-sync-worker:
+    build: ./location-sync-worker
+    container_name: location-sync-worker-service
+    depends_on:
+      - mqtt
+    environment:
+      - MQTT_BROKER=tcp://mqtt:1883
+      - API_KEY=sk_dev_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+    networks:
+      - fleet-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  mosquitto_data:
+
+networks:
+  fleet-network:
+    driver: bridge
