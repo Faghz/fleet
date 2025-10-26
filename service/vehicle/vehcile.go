@@ -99,6 +99,11 @@ func (s *VehicleService) ProcessVehicleLocationSync(ctx context.Context, req *re
 
 func (s *VehicleService) GetVehicleLatestLocationByVehicleID(ctx context.Context, vehicleID string) (*response.VehicleLocation, error) {
 	data, err := s.repo.GetVehicleLatestLocationByVehicleID(ctx, vehicleID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		s.logger.Debug("[GetVehicleLatestLocationByVehicleID] Vehicle location not found", zap.String("vehicle_id", vehicleID))
+		return nil, response.ErrorVehicleNotFound
+	}
+
 	if err != nil {
 		s.logger.Error("[GetVehicleLatestLocationByVehicleID] Failed to get vehicle latest location by vehicle ID", zap.String("vehicle_id", vehicleID), zap.Error(err))
 		return nil, err

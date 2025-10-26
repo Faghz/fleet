@@ -3,7 +3,6 @@ package httphndl
 import (
 	"github.com/elzestia/fleet/pkg/transport/http/response"
 	"github.com/gofiber/fiber/v2"
-	"go.uber.org/zap"
 )
 
 func createVehicleHandler(app *fiber.App, handler *HttpHandler) {
@@ -28,8 +27,7 @@ func (h *HttpHandler) getVehicleLocation(c *fiber.Ctx) error {
 
 	vehicleLocation, err := h.services.VehicleService.GetVehicleLatestLocationByVehicleID(ctx, vehicleID)
 	if err != nil {
-		h.logger.Error("Failed to get vehicle location", zap.String("vehicle_id", vehicleID), zap.Error(err))
-		return response.GenerateFailure(fiber.StatusInternalServerError, "Failed to get vehicle location", err.Error())
+		return err
 	}
 
 	return response.ResponseJson(c, fiber.StatusOK, "Vehicle location retrieved successfully", vehicleLocation)
