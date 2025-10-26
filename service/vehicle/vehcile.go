@@ -96,6 +96,12 @@ func (s *VehicleService) ProcessVehicleLocationSync(ctx context.Context, req *mq
 		zap.Float64("longitude", req.Longitude),
 		zap.Int64("timestamp", req.Timestamp))
 
+	err = s.checkAndPublishNearestPOI(ctx, vehicle.VehicleID, req.Latitude, req.Longitude, req.Timestamp)
+	if err != nil {
+		s.logger.Error("[ProcessVehicleLocationSync] Failed to check and publish nearest POI", zap.String("vehicle_id", req.VehicleID), zap.Error(err))
+		return
+	}
+
 }
 
 func (s *VehicleService) GetVehicleLatestLocationByVehicleID(ctx context.Context, vehicleID string) (*response.VehicleLocation, error) {

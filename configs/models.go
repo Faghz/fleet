@@ -96,9 +96,24 @@ type MQTTConfig struct {
 }
 
 type RabbitMQConfig struct {
-	Host     string `mapstructure:"HOST" validate:"required"`
-	Port     string `mapstructure:"PORT" validate:"required"`
-	User     string `mapstructure:"USER"`
-	Password string `mapstructure:"PASSWORD"`
-	Vhost    string `mapstructure:"VHOST"`
+	Host      string                  `mapstructure:"HOST" validate:"required"`
+	Port      string                  `mapstructure:"PORT" validate:"required"`
+	User      string                  `mapstructure:"USER"`
+	Password  string                  `mapstructure:"PASSWORD"`
+	Vhost     string                  `mapstructure:"VHOST"`
+	Exchange  RabbitMqExchange        `mapstructure:"EXCHANGE"`
+	Publisher RabbitMqPublisherConfig `mapstructure:"PUBLISHER"`
+}
+
+type RabbitMqExchange struct {
+	Fleet struct {
+		Name string `mapstructure:"NAME" validate:"required"`
+		Kind string `mapstructure:"KIND" validate:"required"`
+	} `mapstructure:"FLEET"`
+}
+type RabbitMqPublisherConfig struct {
+	GeoFence struct {
+		Exchange string `mapstructure:"EXCHANGE" validate:"required"`
+		Queue    string `mapstructure:"QUEUE" validate:"required"`
+	} `mapstructure:"GEO_FENCE"`
 }
