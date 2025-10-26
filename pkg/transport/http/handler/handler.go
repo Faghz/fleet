@@ -24,6 +24,7 @@ func CreateHandler(app *fiber.App, services *service.Services, logger *zap.Logge
 	app.Get("/service/healthz", handler.healthz)
 	createAuthHandler(app, handler)
 	createUserHandler(app, handler)
+	createVehicleHandler(app, handler)
 }
 
 // Service Health check

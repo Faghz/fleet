@@ -3,8 +3,10 @@ package vehicle
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/elzestia/fleet/pkg/models"
+	"github.com/elzestia/fleet/pkg/transport/http/response"
 	"github.com/elzestia/fleet/pkg/transport/mqtt/request"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
@@ -93,4 +95,34 @@ func (s *VehicleService) ProcessVehicleLocationSync(ctx context.Context, req *re
 		zap.Float64("longitude", req.Longitude),
 		zap.Int64("timestamp", req.Timestamp))
 
+}
+
+func (s *VehicleService) GetVehicleLatestLocationByVehicleID(ctx context.Context, vehicleID string) (*response.VehicleLocation, error) {
+	data, err := s.repo.GetVehicleLatestLocationByVehicleID(ctx, vehicleID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		s.logger.Debug("[GetVehicleLatestLocationByVehicleID] Vehicle location not found", zap.String("vehicle_id", vehicleID))
+		return nil, response.ErrorVehicleNotFound
+	}
+
+	if err != nil {
+		s.logger.Error("[GetVehicleLatestLocationByVehicleID] Failed to get vehicle latest location by vehicle ID", zap.String("vehicle_id", vehicleID), zap.Error(err))
+		return nil, err
+	}
+
+	latitude, _ := data.Latitude.Int.Float64()
+	longitude, _ := data.Longitude.Int.Float64()
+
+	vehicleResp := response.VehicleLocation{
+		VehicleID: vehicleID,
+		Latitude:  latitude,
+		Longitude: longitude,
+		Timestamp: data.Timestamp,
+		UpdatedAt: data.CreatedAt.Time.Format(time.RFC3339),
+	}
+
+	if data.UpdatedAt.Valid {
+		vehicleResp.UpdatedAt = data.UpdatedAt.Time.Format(time.RFC3339)
+	}
+
+	return &vehicleResp, nil
 }
