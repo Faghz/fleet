@@ -1,0 +1,19 @@
+.env
+tmp
+logs
+*.log
+dummy.json
+generated
+git
+cmd/server/docs
+generated
+postgres_data
+docker-compose.yml
+__debug_*
+config.yaml
+mocks
+# dbmate generated schema
+schema.sql
+.dbmate
+bin/
+gomock_reflect_*
