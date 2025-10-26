@@ -32,6 +32,29 @@ var pois = []POI{
 	{"Jakarta2", -6.1751, 106.8227},
 }
 
+var nearPOIs = map[string][]POI{
+	"Jakarta1": {
+		{"", -6.209, 106.846},
+		{"", -6.208, 106.845},
+		{"", -6.207, 106.844},
+	},
+	"Yogyakarta": {
+		{"", -7.796, 110.370},
+		{"", -7.795, 110.369},
+		{"", -7.794, 110.368},
+	},
+	"Bandung": {
+		{"", -6.918, 107.620},
+		{"", -6.917, 107.619},
+		{"", -6.916, 107.618},
+	},
+	"Jakarta2": {
+		{"", -6.176, 106.823},
+		{"", -6.175, 106.822},
+		{"", -6.174, 106.821},
+	},
+}
+
 var vehicleIDs = []string{"B1234ABC", "B5678DEF", "D9012GHI", "B3456JKL", "E7890MNO"}
 
 func main() {
@@ -56,7 +79,7 @@ func main() {
 	log.Println("Connected to MQTT broker")
 
 	// Seed random number generator
-	random := rand.New(rand.NewSource(time.Hour.Nanoseconds()))
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Worker loop
 	for {
@@ -64,21 +87,26 @@ func main() {
 		poi := pois[random.Intn(len(pois))]
 
 		// Decide if near or far (50% chance)
-		isNear := rand.Float32() < 0.5
+		isNear := random.Float32() < 0.5
 
-		var latOffset, lonOffset float64
+		var latitude, longitude float64
 		if isNear {
-			// Near: within ~1km (0.01 degrees)
-			latOffset = (random.Float64() - 0.5) * 0.02
-			lonOffset = (random.Float64() - 0.5) * 0.02
+			nearPois := nearPOIs[poi.Name]
+			if len(nearPois) > 0 {
+				nearPoi := nearPois[random.Intn(len(nearPois))]
+				latitude = nearPoi.Latitude
+				longitude = nearPoi.Longitude
+			} else {
+				latitude = poi.Latitude
+				longitude = poi.Longitude
+			}
 		} else {
-			// Far: within ~50km (0.5 degrees)
-			latOffset = (random.Float64() - 0.5) * 1.0
-			lonOffset = (random.Float64() - 0.5) * 1.0
+			poi1 := pois[random.Intn(len(pois))]
+			poi2 := pois[random.Intn(len(pois))]
+			fraction := random.Float64()
+			latitude = poi1.Latitude + fraction*(poi2.Latitude-poi1.Latitude)
+			longitude = poi1.Longitude + fraction*(poi2.Longitude-poi1.Longitude)
 		}
-
-		latitude := poi.Latitude + latOffset
-		longitude := poi.Longitude + lonOffset
 
 		// Select random vehicle ID
 		vehicleID := vehicleIDs[random.Intn(len(vehicleIDs))]

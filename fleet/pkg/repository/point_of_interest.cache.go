@@ -70,23 +70,23 @@ func (r *Repository) SetGeoSpatialPointOfInterests(ctx context.Context, points [
 }
 
 func (r *Repository) GetNearestPointOfInterests(ctx context.Context, latitude, longitude float64, radius float64, count int) ([]models.PointOfInterest, error) {
-	geoQuery := &redis.GeoRadiusQuery{
-		Radius:    radius,
-		Unit:      "km",
-		WithCoord: true,
-		WithDist:  true,
-		Count:     count,
-		Sort:      "ASC",
+	geoQuery := &redis.GeoSearchQuery{
+		Longitude:  longitude,
+		Latitude:   latitude,
+		Radius:     radius,
+		RadiusUnit: "m",
+		Sort:       "ASC",
+		Count:      count,
 	}
 
-	locations, err := r.redisConn.GeoRadius(ctx, "point_of_interest", longitude, latitude, geoQuery).Result()
+	locations, err := r.redisConn.GeoSearch(ctx, "point_of_interest", geoQuery).Result()
 	if err != nil {
 		return nil, err
 	}
 
 	points := make([]models.PointOfInterest, 0, len(locations))
 	for _, loc := range locations {
-		hashKey := buildHashKeyForPointOfInterest(loc.Name)
+		hashKey := buildHashKeyForPointOfInterest(loc)
 		hashData, err := r.redisConn.HGetAll(ctx, hashKey).Result()
 		if err != nil {
 			return nil, err
