@@ -3,7 +3,7 @@ package vehicle
 import (
 	"context"
 
-	"github.com/elzestia/fleet/pkg/models"
+	"github.com/elzestia/fleet/pkg/transport/rabbitmq/request"
 	"go.uber.org/zap"
 )
 
@@ -36,10 +36,10 @@ func (s *VehicleService) checkAndPublishNearestPOI(ctx context.Context, vehicleI
 }
 
 func (s *VehicleService) publishVehicleReachNearestPOIEvent(ctx context.Context, vehicleID string, latitude, longitude float64, timestamp int64) error {
-	data := models.ReachedNearestPointOfInterestEvent{
+	data := request.ReachedNearestPointOfInterestEvent{
 		VehicleID: vehicleID,
 		Event:     s.config.RabbitMQ.Publisher.GeoFence.Queue,
-		Location: models.ReachedNearestPointOfInterestLocation{
+		Location: request.ReachedNearestPointOfInterestLocation{
 			Latitude:  latitude,
 			Longitude: longitude,
 		},
