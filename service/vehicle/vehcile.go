@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/elzestia/fleet/pkg/models"
+	"github.com/elzestia/fleet/pkg/transport/http/request"
 	"github.com/elzestia/fleet/pkg/transport/http/response"
-	"github.com/elzestia/fleet/pkg/transport/mqtt/request"
+	mqttRequest "github.com/elzestia/fleet/pkg/transport/mqtt/request"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
 // processVehicleLocation handles the business logic for vehicle location updates
-func (s *VehicleService) ProcessVehicleLocationSync(ctx context.Context, req *request.VehicleLocationRequest) {
+func (s *VehicleService) ProcessVehicleLocationSync(ctx context.Context, req *mqttRequest.VehicleLocationRequest) {
 	// Acquire distributed lock for vehicle location update
 	mutex := s.redis.Mutex.NewMutex("vehicle_location_mutex:" + req.VehicleID)
 	if err := mutex.LockContext(ctx); err != nil {
@@ -125,4 +126,47 @@ func (s *VehicleService) GetVehicleLatestLocationByVehicleID(ctx context.Context
 	}
 
 	return &vehicleResp, nil
+}
+
+func (s *VehicleService) GetVehicleLocationHistory(ctx context.Context, req *request.GetVehicleLocationHistoryRequest) (history []*response.VehicleLocation, err error) {
+	vehicle, err := s.repo.GetVehicleByVehicleID(ctx, req.VehicleID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		s.logger.Debug("[GetVehicleLocationHistory] Vehicle not found", zap.String("vehicle_id", req.VehicleID))
+		return history, response.ErrorVehicleNotFound
+	}
+
+	if err != nil {
+		s.logger.Error("[GetVehicleLocationHistory] Failed to get vehicle by vehicle ID", zap.String("vehicle_id", req.VehicleID), zap.Error(err))
+		return history, err
+	}
+
+	records, err := s.repo.GetVehicleLocationHistoryByVehicleIDAndTimeRange(ctx, models.GetVehicleLocationHistoryByVehicleIDParams{
+		VehicleID: vehicle.EntityID,
+		Start:     req.Start,
+		End:       req.End,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		s.logger.Debug("[GetVehicleLocationHistory] Vehicle location history not found", zap.String("vehicle_id", req.VehicleID))
+		return history, nil
+	}
+
+	if err != nil {
+		s.logger.Error("[GetVehicleLocationHistory] Failed to get vehicle location history by vehicle ID and time range", zap.String("vehicle_id", req.VehicleID), zap.Error(err))
+		return history, err
+	}
+
+	for _, record := range records {
+		latitude, _ := record.Latitude.Float64Value()
+		longitude, _ := record.Longitude.Float64Value()
+
+		history = append(history, &response.VehicleLocation{
+			VehicleID: req.VehicleID,
+			Latitude:  latitude.Float64,
+			Longitude: longitude.Float64,
+			Timestamp: record.Timestamp,
+			UpdatedAt: record.CreatedAt.Time.Format(time.RFC3339),
+		})
+	}
+
+	return history, nil
 }
