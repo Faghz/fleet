@@ -38,6 +38,12 @@ gen-db-docker:
 	docker run --rm -v $(PWD):/src -w /src kjconroy/sqlc:latest generate -f ./configs/sqlc.yaml
 
 
+# Clean generated mocks
+clean-mocks:
+	@echo "Cleaning generated mocks..."
+	rm -f ./pkg/mocks/*-mock.go
+	@echo "Mocks cleaned!"
+
 # Lint code
 lint:
 	golangci-lint run
@@ -151,8 +157,6 @@ help:
 	@echo "  seed-transactions		- Seed sample transactions for testing"
 	@echo "  docs         			- Generate swagger documentation"
 	@echo "  gen-db       			- Generate database code with sqlc"
-	@echo "  gen-mocks    			- Generate mocks for all repository interfaces"
-	@echo "  clean-mocks  			- Clean generated mock files"
 	@echo "  clean        			- Clean build artifacts"
 	@echo "  migrate-create     	- Create a new migration"
 	@echo "  migrate-up        		- Apply all pending migrations"

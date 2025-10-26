@@ -6,12 +6,14 @@ import (
 	"github.com/elzestia/fleet/pkg/repository"
 	"github.com/elzestia/fleet/service/healthz"
 	"github.com/elzestia/fleet/service/user"
+	"github.com/elzestia/fleet/service/vehicle"
 	"go.uber.org/zap"
 )
 
 type Services struct {
 	HealthzService *healthz.HealthzService
 	UserService    *user.UserService
+	VehicleService *vehicle.VehicleService
 }
 
 func CreateServices(cfg *configs.Config, logger *zap.Logger, externalDependencies *external.ExternalDependencies) *Services {
@@ -24,5 +26,6 @@ func CreateServices(cfg *configs.Config, logger *zap.Logger, externalDependencie
 	return &Services{
 		HealthzService: healthzService,
 		UserService:    user.CreateService(cfg, logger, repo, externalDependencies.RedisClient),
+		VehicleService: vehicle.CreateVehicleService(cfg, logger),
 	}
 }

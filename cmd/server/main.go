@@ -5,14 +5,13 @@ package main
 
 import (
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/elzestia/fleet/configs"
 	"github.com/elzestia/fleet/pkg/external"
 	"github.com/elzestia/fleet/pkg/logger"
 	api "github.com/elzestia/fleet/pkg/transport"
+	inthttp "github.com/elzestia/fleet/pkg/transport/http"
+	mqtthandler "github.com/elzestia/fleet/pkg/transport/mqtt/handler"
 	"github.com/elzestia/fleet/service"
 )
 
@@ -46,13 +45,20 @@ func main() {
 
 	// Create API servers.
 	httpServer := api.CreateApiServer(cfg, zapLogger, services)
+	// Initialize MQTT handler
+	mqttHandler := mqtthandler.CreateMqttConsumer(cfg, zapLogger, externalDependencies.MQTTClient, services.VehicleService)
 
-	// ----------------------------
-	// Listen for shutdown signal.
-	// ----------------------------
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	inthttp.SetupAndServe(httpServer, services, cfg.Http.Port, cfg.App.ContextTimeout, zapLogger)
+
+	zapLogger.Info("Server started successfully")
+
+	// Wait for termination signal (e.g., SIGINT, SIGTERM) to gracefully shut down the server.
+	quit := make(chan struct{})
 	<-quit
+
+	zapLogger.Info("Shutting down server...")
+	// Shutdown MQTT handler
+	mqttHandler.Shutdown()
 
 	// Shutdown server.
 	err = api.ShutdownServer(httpServer, zapLogger)
